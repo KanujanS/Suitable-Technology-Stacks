@@ -4,9 +4,9 @@ GitHub Tech Stack Collector for building a dataset of project characteristics an
 
 ## Overview
 
-The notebook in this repository searches GitHub repositories across several application domains and collects metadata for each project. It then uses repository descriptions, topics, READMEs, and language data to infer likely frontend, backend, and database technologies, along with deployment style, project size, and approximate delivery constraints.
+The notebook in this repository, `github_collector.ipynb`, searches GitHub repositories across several application domains and collects metadata for each project. It uses repository descriptions, topics, READMEs, and language statistics to infer likely frontend, backend, and database technologies, along with deployment style, project size, and approximate delivery constraints.
 
-The current notebook target is 1000 projects, and it writes the results to an Excel file named `github_projects_1000.xlsx`.
+By default the notebook defines ~75 curated search queries and `MAX_PAGES = 3`, so the maximum candidate rows before deduplication is roughly 75 * 100 * 3 = 22,500 (actual saved rows will be lower after deduplication). The default output file is `github_projects_data.xlsx`.
 
 ## What It Collects
 
@@ -29,7 +29,7 @@ The notebook:
 3. Detects technologies using keyword matching and language-to-stack fallbacks.
 4. Classifies repository size from stars and forks.
 5. Fills in missing project attributes using domain and size heuristics.
-6. Saves the final dataset to an Excel workbook.
+6. Saves the final dataset to an Excel workbook (default: `github_projects_data.xlsx`).
 
 ## Requirements
 
@@ -40,15 +40,23 @@ The notebook:
 
 ## Setup
 
-1. Open `github_collector_1000.ipynb`.
-2. Replace `YOUR_GITHUB_TOKEN` with your GitHub token.
-3. Run the notebook cells from top to bottom.
+1. Open `github_collector.ipynb`.
+2. Replace the `GITHUB_TOKEN` value in the notebook with your GitHub personal access token.
+3. Optionally adjust `OUTPUT_FILE`, `MAX_PAGES`, and delay constants near the top of the notebook.
+4. Run the notebook cells from top to bottom (or execute the notebook in Google Colab).
+
+Alternative: convert to a script and run from the command line:
+
+```
+jupyter nbconvert --to script github_collector.ipynb
+python github_collector.py
+```
 
 ## Output
 
-When the notebook finishes, it saves the dataset to `github_projects_1000.xlsx`. If run in Google Colab, the file is also downloaded automatically.
+When the notebook finishes, it saves the dataset to `github_projects_data.xlsx` by default. If run in Google Colab, the file is also downloaded automatically.
 
 ## Notes
 
-- The notebook includes a built-in delay between requests to reduce API pressure.
-- It also checks GitHub rate limits periodically during long runs.
+ - The notebook includes a built-in delay between requests to reduce API pressure.
+ - It checks GitHub rate limits periodically during long runs and pauses if limits are low.

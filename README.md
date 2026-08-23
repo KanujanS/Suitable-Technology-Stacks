@@ -1,62 +1,97 @@
-# Suitable-Technology-Stacks
+# A MACHINE LEARNING APPROACH FOR RECOMMENDING SUITABLE TECHNOLOGY STACKS
 
-GitHub Tech Stack Collector for building a dataset of project characteristics and inferred technology stacks from GitHub repositories.
+This repository supports the research project "A MACHINE LEARNING APPROACH FOR RECOMMENDING SUITABLE TECHNOLOGY STACKS BASED ON PROJECT CHARACTERISTICS". It contains the full pipeline used in the study: data collection from GitHub, cleaning and preprocessing, exploratory data analysis (EDA), feature engineering, and model training (multiple machine learning models and ensembles) that predict frontend, backend, and database technologies for a project based on its characteristics.
 
-## Overview
+Repository home: the notebook that collects GitHub projects and the scripts/notebooks used for preprocessing, EDA and model training are included so experiments can be reproduced and extended.
 
-The notebook in this repository, `github_collector.ipynb`, searches GitHub repositories across several application domains and collects metadata for each project. It uses repository descriptions, topics, READMEs, and language statistics to infer likely frontend, backend, and database technologies, along with deployment style, project size, and approximate delivery constraints.
+Repository structure (key files)
 
-By default the notebook defines ~75 curated search queries and `MAX_PAGES = 3`, so the maximum candidate rows before deduplication is roughly 75 * 100 * 3 = 22,500 (actual saved rows will be lower after deduplication). The default output file is `github_projects_data.xlsx`.
+- Data collection
+  - [github_collector.ipynb] — Colab notebook that queries the GitHub Search API and extracts repository metadata, README text, topics and language stats. Default output: `github_projects_data.xlsx`.
 
-## What It Collects
+- Data cleaning & preprocessing
+  - [data_cleaning_final.ipynb] — interactive cleaning steps and checks used during development.
+  - [preprocessing_final.py] — preprocessing pipeline that selects ML-relevant columns, groups rare classes into "Other", encodes ordinal/categorical features, builds TF-IDF features from requirement text, and saves artifacts: `tfidf_vectorizer.pkl`, `label_encoder_frontend.pkl`, `label_encoder_backend.pkl`, `label_encoder_database.pkl`, and `train_val_test_splits.pkl`.
 
-Each collected record includes:
+- Exploratory Data Analysis (EDA)
+  - [eda_final.py] — generates charts (domain distributions, heatmaps of Domain vs Technology, word clouds and other EDA artifacts) and saves PNGs (e.g. `eda_01_domain_counts.png`, `eda_02_domain_vs_frontend.png`).
+  - [Extended_Models.ipynb] — notebook with additional model experiments and ablation studies.
 
-- Project name and GitHub URL
-- Domain and short project description
-- Functional and non-functional requirements
-- Project size, team size, budget level, and duration estimate
-- Deployment type
-- Frontend, backend, and database technology suggestions
-- GitHub stars, forks, and primary language
+- Model training
+  - [model_training_final_3.py] — trains multiple classifiers and ensembles used in the paper, including CatBoost, XGBoost, LightGBM, a sentence-transformer + LightGBM pipeline (NoBERT), and stacking ensembles. Saves model artefacts and evaluation outputs to `outputs/`.
 
-## How It Works
+Additional files
 
-The notebook:
+- `github_projects_cleaned.xlsx` (expected intermediate file produced after cleaning) — used by training scripts.
+- Saved artifacts produced by preprocessing/training:
+  - `tfidf_vectorizer.pkl` — TF-IDF vocabulary used for feature construction
+  - `label_encoder_frontend.pkl`, `label_encoder_backend.pkl`, `label_encoder_database.pkl` — encoders to decode model outputs
+  - `train_val_test_splits.pkl` — pre-made X/y train/val/test splits for reproducible training
+  - `outputs/` — directory where model checkpoints, metrics, and plots are saved during training
 
-1. Queries the GitHub Search API with a curated set of search strings per domain.
-2. Fetches the repository README and language breakdown when needed.
-3. Detects technologies using keyword matching and language-to-stack fallbacks.
-4. Classifies repository size from stars and forks.
-5. Fills in missing project attributes using domain and size heuristics.
-6. Saves the final dataset to an Excel workbook (default: `github_projects_data.xlsx`).
+What the pipeline predicts
 
-## Requirements
+- Targets: Frontend_Tech, Backend_Tech, Database
+- Inputs (representative features): Domain, Functional_Requirements (text), Non_Functional_Requirements (text), Project_Size, Team_Size, Budget_Level, Duration_Months, Deployment, Primary_Language, plus TF-IDF features constructed from FR+NFR and one-hot/ordinal encodings.
 
-- Python 3
-- `requests`
-- `pandas`
-- A GitHub personal access token
+High-level pipeline summary
 
-## Setup
+1. Data collection: run `github_collector.ipynb` (in Colab or locally) to produce an initial dataset of GitHub projects and inferred technology labels.
+2. Cleaning & labeling: use `data_cleaning_final.ipynb` and `preprocessing_final.py` to clean, group rare classes, encode features, vectorize text (TF-IDF) and produce train/val/test splits.
+3. Exploratory analysis: `eda_final.py` creates charts and tables to validate assumptions (e.g. technology prevalence by domain).
+4. Model training: `model_training_final_3.py` trains multiple models, evaluates on validation and test sets, and saves results under `outputs/`.
 
-1. Open `github_collector.ipynb`.
-2. Replace the `GITHUB_TOKEN` value in the notebook with your GitHub personal access token.
-3. Optionally adjust `OUTPUT_FILE`, `MAX_PAGES`, and delay constants near the top of the notebook.
-4. Run the notebook cells from top to bottom (or execute the notebook in Google Colab).
+Reproducing the experiments (suggested steps)
 
-Alternative: convert to a script and run from the command line:
+1. Clone the repository and change to the project folder:
 
-```
-jupyter nbconvert --to script github_collector.ipynb
-python github_collector.py
-```
+   cd "<path-to-repo>"
 
-## Output
+2. (Optional but recommended) Create and activate a virtual environment:
 
-When the notebook finishes, it saves the dataset to `github_projects_data.xlsx` by default. If run in Google Colab, the file is also downloaded automatically.
+   python3 -m venv venv
+   source venv/bin/activate
 
-## Notes
+3. Install required Python packages (packages used across notebooks and scripts):
 
- - The notebook includes a built-in delay between requests to reduce API pressure.
- - It checks GitHub rate limits periodically during long runs and pauses if limits are low.
+   pip install pandas numpy matplotlib seaborn scikit-learn joblib openpyxl
+   pip install xgboost lightgbm catboost sentence-transformers wordcloud
+
+   Note: If GPU acceleration is required for heavy transformer usage, follow the sentence-transformers installation notes.
+
+4. Data collection (Colab recommended for convenience):
+   - Open [github_collector.ipynb] in Colab or locally.
+   - Provide a GitHub personal access token where prompted and run the cells.
+   - The notebook outputs `github_projects_data.xlsx`.
+
+5. Cleaning & preprocessing:
+   - Open `data_cleaning_final.ipynb` or run `preprocessing_final.py` in an environment that provides the dataset (the Colab notebooks use `google.colab.files.upload()` interaction).
+   - Preprocessing produces `github_projects_cleaned.xlsx`, `tfidf_vectorizer.pkl`, label encoder pickles, and `train_val_test_splits.pkl`.
+
+6. Run EDA:
+   - Run `python eda_final.py` (or open the EDA notebook) to regenerate EDA charts.
+
+7. Model training:
+   - Ensure `train_val_test_splits.pkl` and `github_projects_cleaned.xlsx` are in the same folder as `model_training_final_3.py`.
+   - Run:
+
+       python model_training_final_3.py
+
+   - Results (metrics, confusion matrices and model pickles) are saved to `outputs/`.
+
+Requirements (summary)
+
+- Python 3.8+ recommended
+- Major Python libraries used in codebase: pandas, numpy, matplotlib, seaborn, scikit-learn, joblib, openpyxl, xgboost, lightgbm, catboost, sentence-transformers, wordcloud
+- A GitHub personal access token for the data collection notebook
+
+Notes & reproduction tips
+
+- The notebooks were developed and run in Google Colab during the research — some cells use `google.colab.files.upload()` for convenience. When running locally, replace those upload steps with direct file paths.
+- Preprocessing uses deterministic groupings and encoding mappings (rare-class grouping into "Other", ordinal maps for Project_Size / Budget_Level / Deployment). For exact reproducibility, use the provided preprocessing script and saved encoders.
+- Long-running model variants (e.g., NoBERT / transformer-based features) are optional and controlled via configuration flags in `model_training_final_3.py`.
+
+Contact & citation
+
+If you use this dataset or code in your work, please cite the project and contact the repository owner for questions or collaboration opportunities.
+
